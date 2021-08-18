@@ -11,9 +11,7 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/rest")
@@ -38,12 +36,10 @@ public class MyRestController {
     }
 
     @GetMapping("/spends")
-    public List<Transaction> getSpends(@RequestParam(name = "points") int points) {
+    public List<Map<String, Object>> getSpends(@RequestParam(name = "points") int points) {
         List<Transaction> transactions = genericDao.getOldestTransactionsThatWereNotCounted();
         List<Transaction> spends = new ArrayList<>();
         for (Transaction transaction : transactions){
-
-
             Payer payer = transaction.getPayerObj();
             int pointsToSpend = payer.getBalance();
             int afterSpendBalance = pointsToSpend - points;
@@ -56,38 +52,33 @@ public class MyRestController {
                 payer.setBalance(0);
                 transaction.setPayer(payer);
                 transaction.setCounted(true); // no points to spend in future. can set ignore flag
-//                System.out.println("<=0:" + transaction);
             } else {
                 spends.add(new Transaction(payer, afterSpendBalance));
                 payer.setBalance(afterSpendBalance);
                 transaction.setPayer(payer);
             }
-            System.out.println(spends);
-            System.out.println("for is still here:" + points);
+
             if (points <= 0) {
                 break;
             }
         }
 
-        System.out.println();
-        System.out.println("updatedTransactionsInOldestOrder:");
-        for (Transaction transaction : transactions){
-            System.out.println(transaction.getPayerObj() + "/ flag:" + transaction.isCounted());
-        }
-        System.out.println();
-        System.out.println("originalTransactions:");
-        List<Transaction> trs = genericDao.getAll(Transaction.class);
-        for (Transaction transaction : trs){
-            System.out.println(transaction.getPayerObj() + "/ flag:" + transaction.isCounted());
+        for (Transaction updatedTransaction : transactions) {
+            genericDao.saveOrUpdate(updatedTransaction);
         }
 
+        return convertTransactionsToMap(spends);
+    }
 
-        System.out.println();
-        System.out.println("spends:");
-        for (Transaction transaction : spends){
-            System.out.println(transaction);
+    private List<Map<String, Object>> convertTransactionsToMap(List<Transaction> spends) {
+        List<Map<String, Object>> spendTransactionsMaps = new ArrayList<>();
+        for (Transaction transaction : spends) {
+            Map<String, Object> spendTransactionsMap = new HashMap<>();
+            spendTransactionsMap.put("payer", transaction.getPayer());
+            spendTransactionsMap.put("points", transaction.getPoints());
+            spendTransactionsMaps.add(spendTransactionsMap);
         }
-        return trs;
+        return spendTransactionsMaps;
     }
 
     @PostMapping("/transaction")

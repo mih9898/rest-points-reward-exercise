@@ -85,4 +85,5 @@ public class Transaction {
         }
         this.date = new Timestamp(parsedDate.getTime());
     }
+
 }
