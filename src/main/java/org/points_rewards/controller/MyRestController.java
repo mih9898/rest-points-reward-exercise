@@ -7,10 +7,7 @@ import org.points_rewards.repository.GenericDao;
 import org.points_rewards.service.GenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.sql.Timestamp;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 
 import java.util.*;
 
@@ -45,8 +42,6 @@ public class MyRestController {
         List<Transaction> orderedTransactions = genericDao.getListBasedOnCustomHquery(hquery);
         return genService.processSpendPointsForTransactions(points, orderedTransactions);
     }
-
-
 
     @PostMapping("/transaction")
     public Transaction newTransaction(@RequestBody TransactionDTO transactionDTO) {
