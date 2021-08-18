@@ -4,6 +4,7 @@ import org.points_rewards.entity.Payer;
 import org.points_rewards.entity.Transaction;
 import org.points_rewards.entity.TransactionDTO;
 import org.points_rewards.repository.GenericDao;
+import org.points_rewards.service.GenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,10 +18,13 @@ import java.util.*;
 @RequestMapping("/rest")
 public class MyRestController {
     private final GenericDao genericDao;
+    private final GenService genService;
+
 
     @Autowired
-    public MyRestController(GenericDao genericDao) {
+    public MyRestController(GenericDao genericDao, GenService genService) {
         this.genericDao = genericDao;
+        this.genService = genService;
     }
 
 
@@ -37,58 +41,24 @@ public class MyRestController {
 
     @GetMapping("/spends")
     public List<Map<String, Object>> getSpends(@RequestParam(name = "points") int points) {
-        List<Transaction> transactions = genericDao.getOldestTransactionsThatWereNotCounted();
-        List<Transaction> spends = new ArrayList<>();
-        for (Transaction transaction : transactions){
-            Payer payer = transaction.getPayerObj();
-            int pointsToSpend = payer.getBalance();
-            int afterSpendBalance = pointsToSpend - points;
-            points = points - pointsToSpend;
-
-            if (afterSpendBalance <= 0) {
-                if (payer.getBalance() > 0) {
-                    spends.add(new Transaction(payer));
-                }
-                payer.setBalance(0);
-                transaction.setPayer(payer);
-                transaction.setCounted(true); // no points to spend in future. can set ignore flag
-            } else {
-                spends.add(new Transaction(payer, afterSpendBalance));
-                payer.setBalance(afterSpendBalance);
-                transaction.setPayer(payer);
-            }
-
-            if (points <= 0) {
-                break;
-            }
-        }
-
-        for (Transaction updatedTransaction : transactions) {
-            genericDao.saveOrUpdate(updatedTransaction);
-        }
-
-        return convertTransactionsToMap(spends);
+        String hquery = "select tr from Transaction tr where tr.isCounted=false order by date asc";
+        List<Transaction> orderedTransactions = genericDao.getListBasedOnCustomHquery(hquery);
+        return genService.processSpendPointsForTransactions(points, orderedTransactions);
     }
 
-    private List<Map<String, Object>> convertTransactionsToMap(List<Transaction> spends) {
-        List<Map<String, Object>> spendTransactionsMaps = new ArrayList<>();
-        for (Transaction transaction : spends) {
-            Map<String, Object> spendTransactionsMap = new HashMap<>();
-            spendTransactionsMap.put("payer", transaction.getPayer());
-            spendTransactionsMap.put("points", transaction.getPoints());
-            spendTransactionsMaps.add(spendTransactionsMap);
-        }
-        return spendTransactionsMaps;
-    }
+
 
     @PostMapping("/transaction")
     public Transaction newTransaction(@RequestBody TransactionDTO transactionDTO) {
         System.out.println("transactionDTO:" + transactionDTO);
 
-        Payer payer = createOrGetPayer(transactionDTO);
+        Payer payer = genService.createOrGetPayer(transactionDTO);
         Transaction transaction = new Transaction(transactionDTO, payer);
         int balanceIsGreaterThanZero = updatePayerBalance(payer,transaction.getPoints());
-        //TODO: return string err if balance < 0
+        if (balanceIsGreaterThanZero < 0) {
+            System.err.println("/transaction.newTransaction: balanceIsLessThanZero");
+            return null;
+        }
 
         genericDao.save(transaction);
         System.out.println("transaction:" + transaction);
@@ -105,20 +75,6 @@ public class MyRestController {
         genericDao.saveOrUpdate(payer);
         return 1;
     }
-
-    private Payer createOrGetPayer(TransactionDTO transactionDTO) {
-        String payerName = transactionDTO.getPayer();
-        int balance = transactionDTO.getPoints();
-
-        Payer payer =  genericDao.getFirstEntryBasedOnAnotherTableColumnProperty("name", payerName, Payer.class);
-        if (payer == null) {
-            payer = new Payer(payerName);
-            genericDao.save(payer);
-        }
-        return payer;
-
-    }
-
 
     public static void main(String[] args) throws ParseException {
 //        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");

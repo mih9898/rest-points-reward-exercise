@@ -24,12 +24,6 @@ public class Payer {
     @Column
     private int balance;
 
-    public Payer(String name, int balance) {
-        this.name = name;
-        this.balance = balance;
-    }
-
-
     public Payer(String payerName) {
         this.name = name;
     }

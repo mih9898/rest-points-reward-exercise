@@ -140,11 +140,17 @@ public class GenericDao {
     }
 
 
-    public List<Transaction> getOldestTransactionsThatWereNotCounted() {
+    public <T> List<T> getListBasedOnCustomHquery(String hquery) {
         final Session session = sessionFactory.getCurrentSession();
-        String hquery = "select tr from Transaction tr where tr.isCounted=false order by date asc";
         Query transactions = session.createQuery(hquery);
         return transactions.list();
     }
+
+//    public List<Transaction> getOldestTransactionsThatWereNotCounted() {
+//        final Session session = sessionFactory.getCurrentSession();
+//        String hquery = "select tr from Transaction tr where tr.isCounted=false order by date asc";
+//        Query transactions = session.createQuery(hquery);
+//        return transactions.list();
+//    }
 
 }
