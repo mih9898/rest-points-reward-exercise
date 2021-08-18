@@ -6,6 +6,8 @@ import org.apache.logging.log4j.Logger;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.query.Query;
+import org.points_rewards.entity.Transaction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -135,6 +137,14 @@ public class GenericDao {
                 .orElse(null);
         //session.close();
         return tableEntity;
+    }
+
+
+    public List<Transaction> getOldestTransactionsThatWereNotCounted() {
+        final Session session = sessionFactory.getCurrentSession();
+        String hquery = "select tr from Transaction tr where tr.isCounted=false order by date asc";
+        Query transactions = session.createQuery(hquery);
+        return transactions.list();
     }
 
 }

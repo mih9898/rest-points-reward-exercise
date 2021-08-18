@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -34,6 +35,59 @@ public class MyRestController {
     @GetMapping("/transactions")
     public List<Transaction> getTransactions() {
         return genericDao.getAll(Transaction.class);
+    }
+
+    @GetMapping("/spends")
+    public List<Transaction> getSpends(@RequestParam(name = "points") int points) {
+        List<Transaction> transactions = genericDao.getOldestTransactionsThatWereNotCounted();
+        List<Transaction> spends = new ArrayList<>();
+        for (Transaction transaction : transactions){
+
+
+            Payer payer = transaction.getPayerObj();
+            int pointsToSpend = payer.getBalance();
+            int afterSpendBalance = pointsToSpend - points;
+            points = points - pointsToSpend;
+
+            if (afterSpendBalance <= 0) {
+                if (payer.getBalance() > 0) {
+                    spends.add(new Transaction(payer));
+                }
+                payer.setBalance(0);
+                transaction.setPayer(payer);
+                transaction.setCounted(true); // no points to spend in future. can set ignore flag
+//                System.out.println("<=0:" + transaction);
+            } else {
+                spends.add(new Transaction(payer, afterSpendBalance));
+                payer.setBalance(afterSpendBalance);
+                transaction.setPayer(payer);
+            }
+            System.out.println(spends);
+            System.out.println("for is still here:" + points);
+            if (points <= 0) {
+                break;
+            }
+        }
+
+        System.out.println();
+        System.out.println("updatedTransactionsInOldestOrder:");
+        for (Transaction transaction : transactions){
+            System.out.println(transaction.getPayerObj() + "/ flag:" + transaction.isCounted());
+        }
+        System.out.println();
+        System.out.println("originalTransactions:");
+        List<Transaction> trs = genericDao.getAll(Transaction.class);
+        for (Transaction transaction : trs){
+            System.out.println(transaction.getPayerObj() + "/ flag:" + transaction.isCounted());
+        }
+
+
+        System.out.println();
+        System.out.println("spends:");
+        for (Transaction transaction : spends){
+            System.out.println(transaction);
+        }
+        return trs;
     }
 
     @PostMapping("/transaction")

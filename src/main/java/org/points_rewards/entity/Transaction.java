@@ -52,10 +52,24 @@ public class Transaction {
         this.payer = payer;
     }
 
+    public Transaction(Payer payerObj) {
+        this.payer = payerObj;
+        this.points = -payerObj.getBalance();
+    }
+
+    public Transaction(Payer payer, int afterSpendBalance) {
+        this.payer = payer;
+        this.points = afterSpendBalance - payer.getBalance();
+    }
 
 
+    // override getter to display json(jackson) how in specs (/spends)
     public String getPayer() {
         return payer.getName();
+    }
+
+    public Payer getPayerObj() {
+        return payer;
     }
 
 
