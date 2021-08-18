@@ -20,7 +20,7 @@ import java.util.List;
 public class GenericDao {
 
     //    @Autowired
-    private SessionFactory sessionFactory;
+    private final SessionFactory sessionFactory;
 
     @Autowired
     public GenericDao(SessionFactory sessionFactory) {
