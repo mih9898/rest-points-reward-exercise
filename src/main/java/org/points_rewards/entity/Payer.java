@@ -14,11 +14,6 @@ import javax.persistence.*;
 @Data
 public class Payer {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator = "native")
-    @GenericGenerator(name = "native", strategy = "native")
-    @Column(name = "id")
-    private int id;
-
     @Column
     private String name;
 
@@ -29,4 +24,8 @@ public class Payer {
         this.name = name;
         this.balance = balance;
     }
+
+
+
+
 }
