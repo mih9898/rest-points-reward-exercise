@@ -10,6 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
 import java.util.List;
 
 /**
@@ -108,6 +111,30 @@ public class GenericDao {
         final Session session = sessionFactory.getCurrentSession();
         final Criteria crit = session.createCriteria(type);
         return crit.list();
+    }
+
+    /**
+     * Gets first entry based on another table column property.
+     *
+     * @param <T>          the type parameter
+     * @param propertyName the property name
+     * @param searchVal    the search val
+     * @param type         the type
+     * @return the first entry based on another table column property
+     */
+    public <T> T getFirstEntryBasedOnAnotherTableColumnProperty(String propertyName, String searchVal, Class<T> type) {
+        final Session session = sessionFactory.getCurrentSession();
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<T> query = builder.createQuery(type);
+        Root<T> root = query.from(type);
+        query.select(root).where(builder.equal(root.get(propertyName), searchVal));
+        T tableEntity = session.createQuery(query)
+                .getResultList()
+                .stream()
+                .findFirst()
+                .orElse(null);
+        //session.close();
+        return tableEntity;
     }
 
 }

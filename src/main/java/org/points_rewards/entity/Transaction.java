@@ -45,6 +45,14 @@ public class Transaction {
             foreignKey = @ForeignKey(name = "transactions_ibfk_1"))
     private Payer payer;
 
+    public Transaction(TransactionDTO transactionDTO, Payer payer) {
+        this.date = transactionDTO.getDate();
+        this.points = transactionDTO.getPoints();
+        this.isCounted = false;
+        this.payer = payer;
+    }
+
+
 
     public String getPayer() {
         return payer.getName();
@@ -52,12 +60,13 @@ public class Transaction {
 
 
     public void setDate(String date) {
+        System.out.println("setDate:" + date);
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         Date parsedDate = null;
         try {
             parsedDate = dateFormat.parse(date);
         } catch (ParseException e) {
-            this.date = null;
+            this.date = null; //TODO: wrong date  validation in controller
             return;
         }
         this.date = new Timestamp(parsedDate.getTime());

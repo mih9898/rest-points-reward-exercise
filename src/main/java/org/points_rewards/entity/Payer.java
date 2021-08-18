@@ -26,6 +26,7 @@ public class Payer {
     }
 
 
-
-
+    public Payer(String payerName) {
+        this.name = name;
+    }
 }
