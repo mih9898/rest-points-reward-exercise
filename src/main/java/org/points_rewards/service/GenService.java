@@ -30,38 +30,41 @@ public class GenService {
 
 
     public List<Map<String, Object>> processSpendPointsForTransactions(int points,  List<Transaction> orderedTransactions) {
+//        List<Transaction> transactions = genericDao.getOldestTransactionsThatWereNotCounted();
         List<Transaction> spends = new ArrayList<>();
-
-        if (orderedTransactions.isEmpty() || points == 0) {
-            return null;
-        }
-
-        // spending points from unchecked transactions
         for (Transaction transaction : orderedTransactions){
             Payer payer = transaction.getPayerObj();
-            int pointsToSpend = payer.getBalance();
-            int afterSpendBalance = pointsToSpend - points;
-            points = points - pointsToSpend;
+            int transPoints = transaction.getPoints();
+            points = points - transPoints;
 
-
-            // update balance, transaction's flag, and forming final spend-transaction
-            if (afterSpendBalance <= 0) {
-                if (payer.getBalance() > 0) {
-                    spends.add(new Transaction(payer));
+            if (points >= 0) { //trans.points.balance is zero
+                Transaction spend = new Transaction(payer, -transPoints);
+                payer.setBalance(payer.getBalance() - transPoints);
+                System.out.println("payer:" + payer);
+                transaction.setCounted(true);
+                // merge spends if they have the same payer
+                if (spends.contains(spend)) {
+                    for (Transaction existedSpendWithTheSamePayer : spends) {
+                        if (existedSpendWithTheSamePayer.getPayer().equals(spend.getPayer())) {
+                            existedSpendWithTheSamePayer.addPoints(spend.getPoints());
+                        }
+                        break;
+                    }
+                    continue;
                 }
-                payer.setBalance(0);
-                transaction.setPayer(payer);
-                transaction.setCounted(true); // no points to spend in future. can set ignore flag
-            } else {
-                spends.add(new Transaction(payer, afterSpendBalance));
-                payer.setBalance(afterSpendBalance);
-                transaction.setPayer(payer);
+                spends.add(spend);
+
+            } else { // TODO: trans.points.balance have smt + add own trans.balance to be able to reuse
+                int diff = transPoints + points;
+                spends.add(new Transaction(payer, -diff));
+                payer.setBalance(payer.getBalance() -  diff);
             }
-            // no more points
+
             if (points <= 0) {
                 break;
             }
         }
+
         //update ignore-flag(s) for transactions+balance
         for (Transaction updatedTransaction : orderedTransactions) {
             genericDao.saveOrUpdate(updatedTransaction);
@@ -90,7 +93,9 @@ public class GenService {
         Payer payer =  genericDao.getFirstEntryBasedOnAnotherTableColumnProperty("name", payerName, Payer.class);
         if (payer == null) {
             payer = new Payer(payerName);
-            genericDao.save(payer);
+            System.out.println("createPay:" + payer);
+
+//            genericDao.saveObject(payer);
         }
         return payer;
     }

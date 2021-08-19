@@ -16,6 +16,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @Table(name = "transactions")
 @Entity(name = "Transaction")
@@ -41,11 +42,12 @@ public class Transaction {
     @LazyCollection(LazyCollectionOption.FALSE)
     @ManyToOne(cascade = CascadeType.ALL)
     @ToString.Exclude
-    @JoinColumn(name = "payer_name",
+    @JoinColumn(name = "payer_id",
             foreignKey = @ForeignKey(name = "transactions_ibfk_1"))
     private Payer payer;
 
     public Transaction(TransactionDTO transactionDTO, Payer payer) {
+        System.out.println("Trans constr payer:" + payer);
         this.date = transactionDTO.getDate();
         this.points = transactionDTO.getPoints();
         this.isCounted = false;
@@ -59,7 +61,12 @@ public class Transaction {
 
     public Transaction(Payer payer, int afterSpendBalance) {
         this.payer = payer;
-        this.points = afterSpendBalance - payer.getBalance();
+        this.points = afterSpendBalance;
+//        this.points = afterSpendBalance - payer.getBalance();
+    }
+
+    public void addPoints(int pointsToAdd) {
+        this.points = points + pointsToAdd;
     }
 
 
@@ -86,4 +93,16 @@ public class Transaction {
         this.date = new Timestamp(parsedDate.getTime());
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Transaction that = (Transaction) o;
+        return id == that.id && Objects.equals(payer, that.payer);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, payer);
+    }
 }

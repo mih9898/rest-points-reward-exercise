@@ -44,31 +44,34 @@ public class MyRestController {
     }
 
     @PostMapping("/transaction")
-    public Transaction newTransaction(@RequestBody TransactionDTO transactionDTO) {
+    public void newTransaction(@RequestBody TransactionDTO transactionDTO) {
         System.out.println("transactionDTO:" + transactionDTO);
 
         Payer payer = genService.createOrGetPayer(transactionDTO);
         Transaction transaction = new Transaction(transactionDTO, payer);
-        int balanceIsGreaterThanZero = updatePayerBalance(payer,transaction.getPoints());
-        if (balanceIsGreaterThanZero < 0) {
-            System.err.println("/transaction.newTransaction: balanceIsLessThanZero");
-            return null;
-        }
 
-        genericDao.save(transaction);
-        System.out.println("transaction:" + transaction);
+//        int balanceIsGreaterThanZero = updatePayerBalance(payer,transaction.getPoints());
+        transaction = updatePayerBalance(transaction);
 
-        return transaction;
+//        if (balanceIsGreaterThanZero < 0) {
+//            System.err.println("/transaction.newTransaction: balanceIsLessThanZero");
+//            return 0;
+//        }
+
+        genericDao.saveOrUpdate(transaction);
     }
 
-    private int updatePayerBalance(Payer payer, int points) {
-        int finalResultDiff = payer.getBalance() - points;
+    private Transaction updatePayerBalance(Transaction transaction) {
+        int points = transaction.getPoints();
+        Payer payer = transaction.getPayerObj();
+        int finalResultDiff = payer.getBalance() + points;
         if (finalResultDiff < 0) {
-            return 0;
+            return null;
         }
         payer.setBalance(finalResultDiff);
-        genericDao.saveOrUpdate(payer);
-        return 1;
+        transaction.setPayer(payer);
+//        genericDao.saveOrUpdate(payer);
+        return transaction;
     }
 
     public static void main(String[] args) throws ParseException {
